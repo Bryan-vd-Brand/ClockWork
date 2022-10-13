@@ -8,6 +8,15 @@
 input_dir:
   /home/b.brand_cbs-niob.local/Documents/ClockWork/data
 
+#In the case of using barcodes for a multiplex sequencing run, this file contains the barcodes in cutadapt's preffered format: FASTA 
+#>barcodeID
+#seq
+
+demultiplex_barcode_tsv:
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/Barcodes.tsv
+
+#Barcodes
+
 
 #START
 samples:

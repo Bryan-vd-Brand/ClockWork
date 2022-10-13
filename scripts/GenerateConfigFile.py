@@ -6,7 +6,7 @@
 
 import glob
 import os
-import pandas as pd
+import argparse
 
 ConfigFile = "config.yaml"
 DataFolder = ""
@@ -15,11 +15,22 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     requiredArgs = parser.add_argument_group("Required arguments")
+
+    requiredArgs.add_argument(
+        "-c",
+        "--config_yaml",
+        dest = "config_file",
+        nargs="+",
+        required=True,
+        help="Config file for snakemake"
+    )
     
     return parser.parse_args()
 
 
-def main(): 
+def main():
+    args = parse_args()
+    ConfigFile = args.config_file
     with open(F'{ConfigFile}','rt') as configFile:
         line = configFile.readline()
         while("input_dir:" not in line):
