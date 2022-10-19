@@ -14,6 +14,9 @@ def getBarcodes(barcodeFile):
             BarcodeIDs.append(barcodeID)
     return BarcodeIDs
 
+
+#Rule applies cutadapt to all paired fastqc files in the data directory
+#Conservative 3' read trimming with -q 5 see https://cutadapt.readthedocs.io/en/stable/algorithms.html#quality-trimming-algorithm
 rule demultiplexing_paired:
     input:
         r1 = f"{DATA_DIR}/{{sample}}/{{sample}}_L4_1.fq.gz",
@@ -26,7 +29,7 @@ rule demultiplexing_paired:
         stderr = "logs/1_DemultiplexTrim/{sample}/{sample}_demux.stderr"
     shell:
         """
-        cutadapt -j {threads} -e 0.15 -g ^file:{BARCODES} -o {{name}}_{wildcards.sample}_1.fastq -p {{name}}_{wildcards.sample}_2.fastq {input.r1} {input.r2}
+        cutadapt -j {threads} -q 5 -e 0.15 -g ^file:{BARCODES} -o {{name}}_{wildcards.sample}_1.fastq -p {{name}}_{wildcards.sample}_2.fastq {input.r1} {input.r2}
         touch results/1_DemultiplexTrim/demux_{wildcards.sample}.touch
         """
 
