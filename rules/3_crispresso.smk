@@ -1,11 +1,8 @@
 #This rule file performs crispresso on paired fastqc files seperated by barcode in the Barcode_SampleName_1.fastq format
 
-import pandas as pd
-from os import path
-import os 
-
-DATA_DIR = config['input_dir']
 BARCODES = config['demultiplex_barcode_tsv']
+AMPLICONREF = config['AmpliconReference']
+GUIDESEQ = config['GuideSequences']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
 def getBarcodes(barcodeFile):
@@ -18,58 +15,127 @@ def getBarcodes(barcodeFile):
             BarcodeIDs.append(barcodeID)
     return BarcodeIDs
 
-checkpoint fixed:
+#Opens FASTA format amplicon file, takes sequences/names and returns strings in CRISPResso's preferred format x,y,z.
+def getAmpliconSeqs(fastaFile):
+
+    AmpliconReferenceNames = []
+    AmpliconReferenceSequences = []
+    GuideSequences = []
+
+    lines = [line.strip() for line in open(fastaFile).readlines()]
+    for line in lines:
+        if '>' in line:
+            ampliconName = line.replace('>','')
+            AmpliconReferenceNames.append(ampliconName)
+            #Retrieve corresponding guide sequence
+            guides = [l.strip() for l in open(GUIDESEQ).readlines()]
+            for guideLine in guides:
+                if ampliconName in guideLine:
+                    guideSeq = guideLine.split('\t')[1]
+                    GuideSequences.append(guideSeq)
+        if not '>' in line:
+            AmpliconReferenceSequences.append(line)
+    if len(AmpliconReferenceSequences) != len(GuideSequences):
+        print("ERROR: unequal lengths for AmpliconReference and GuideSequences")
+
+    #Compose csv 
+    ARN = ""
+    ARS = ""
+    GS = ""
+    for i in range(0, len(AmpliconReferenceSequences)):
+        ARN = ARN + AmpliconReferenceNames[i] + ","
+        ARS = ARS + AmpliconReferenceSequences[i] + ","
+        GS = GS + GuideSequences[i] + ","
+    return [ARN[0:-1],ARS[0:-1],GS[0:-1]]
+
+rule crispresso:
     input:
-        did1 = "results/1_DemultiplexTrim/DidDemux.touch"
+        r1 = "results/1_DemultiplexTrim/{bc}_{sample}_1.fastq",
+        r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
     output:
-        passed = "results/2_fastqc/passed_fixed.touch"
-    shell:
-        """
-        touch results/2_fastqc/passed_fixed.touch
-        echo "Checkpoint fixed"
-        """
-
-#Checkpoint method, causes re-evaluation of the DAG/Jobs and returns all paired files for fastqc
-def getDemultiplexed_FQpairs(wildcards):
-    #Forces checkpoint
-    check = checkpoints.fixed.get(**wildcards).output[0]
-    samplename = wildcards.sample
-    barcode = getBarcodes(BARCODES)
-    #fastqc expects output directory to already exist
-    if not os.path.isdir(f"results/2_fastqc/{samplename}/"):
-        os.system(f"echo Did not find {samplename} dir ")
-        os.system(f"mkdir results/2_fastqc/{samplename}/")
-
-
-    return expand("results/1_DemultiplexTrim/{Barcode}_{sample}_{pair}.fastq", sample = samplename, Barcode = barcode, pair = [1,2])
-
-
-rule fastqc_paired_2:
-    input:
-        fqs = getDemultiplexed_FQpairs
-    output:
-        outdir = directory("results/2_fastqc/{sample}/"),
-        completed = "results/2_fastqc/fastqc_{sample}.touch"
-    threads: 20
-    log:
-        stdout = "logs/2_fastqc/{sample}/{sample}_fastqc.stdout",
-        stderr = "logs/2_fastqc/{sample}/{sample}_fastqc.stderr"
-    shell:
-        """
-        mkdir "results/2_fastqc/{wildcards.sample}/"
-        touch "results/2_fastqc/fastqc_{wildcards.sample}.touch"
-        fastqc -o {output.outdir} -t {threads} {input.fqs} 1> {log.stdout} 2> {log.stderr}
-        """
-
-rule multiqc_2:
-    input:
-        dir = expand("results/2_fastqc/{sample}/", sample = config.get("samples").keys()),
-        touch = expand("results/2_fastqc/fastqc_{sample}.touch", sample = config.get("samples").keys())
-    output:
-        "results/2_fastqc/multiqc_report.html"
+        "results/3_crispresso/crispresso_{bc}_{sample}.touch"
+    threads: 2
     params:
-        outdir = "results/2_fastqc"
+        AR = getAmpliconSeqs(AMPLICONREF)
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stderr"
     shell:
         """
-        multiqc -v -f {input.dir} -o {params.outdir}
+        CRISPResso --expand_allele_plots_by_quantification -r1 {input.r1} -r2 {input.r2} -a {params.AR[1]} -an {params.AR[0]} -g {params.AR[2]} -o results/3_crispresso/
+        touch results/3_crispresso/crispresso_{wildcards.bc}_{wildcards.sample}.touch
+        """
+
+rule align:
+    input:
+        r1 = "results/1_DemultiplexTrim/{bc}_{sample}_1.fastq",
+        r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
+    output:
+        "{bc}_{sample}.sam"
+    threads: 2
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stderr"
+    shell:
+        """
+        bwa mem -o {wildcards.bc}_{wildcards.sample}.sam {AMPLICONREF} {input.r1} {input.r2}
+        """
+
+rule convert:
+    input:
+        sam = "{bc}_{sample}.sam"
+    output:
+        "{bc}_{sample}.bam"
+    threads: 2
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stderr"
+    shell:
+        """
+        samtools view -b -o {wildcards.bc}_{wildcards.sample}.bam {input.sam}
+        """
+
+rule sort:
+    input:
+        "{bc}_{sample}.bam"
+    output:
+        "sorted_{bc}_{sample}.bam"
+    threads: 2
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stderr"
+    shell:
+        """
+        samtools sort -o sorted_{wildcards.bc}_{wildcards.sample}.bam {input}
+        """
+
+rule index:
+    input:
+        sorted = "sorted_{bc}_{sample}.bam"
+    output:
+        "results/3_crispresso/align_{bc}_{sample}.touch"
+    threads: 2
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_align.stderr"
+    shell:
+        """
+        samtools index {input.sorted}
+        touch results/3_crispresso/align_{wildcards.bc}_{wildcards.sample}.touch
+        """
+
+rule did_crispresso:
+    input:
+        crp = expand("results/3_crispresso/crispresso_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES)),
+        algn = expand("results/3_crispresso/align_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES))
+    output:
+        "results/3_crispresso/finished_crispresso.touch"
+    shell:
+        """
+        mv sorted_*.bam results/3_crispresso/
+        mv sorted_*.bam.bai results/3_crispresso/
+        rm *.sam
+        rm *.bam
+        CRISPRessoAggregate --name "ClockWork" --prefix results/3_crispresso/ --suffix _2
+        touch results/3_crispresso/finished_crispresso.touch
         """

@@ -3,6 +3,7 @@ report: "report/workflow.rst"
 include: "rules/0_fastqc.smk"
 include: "rules/1_DemultiplexTrim.smk"
 include: "rules/2_fastqc.smk"
+include: "rules/3_crispresso.smk"
 
 print(config.get("samples"))
 
@@ -18,4 +19,5 @@ rule all:
     input:
         "results/0_fastqc/multiqc_report.html",
         "results/1_DemultiplexTrim/DidDemux.touch",
-        "results/2_fastqc/multiqc_report.html"
+        "results/2_fastqc/multiqc_report.html",
+        "results/3_crispresso/finished_crispresso.touch"

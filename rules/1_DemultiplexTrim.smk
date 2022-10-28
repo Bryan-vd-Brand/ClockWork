@@ -52,29 +52,9 @@ def getBarcodedFQ(wildcards):
     barcodes = getBarcodes(BARCODES)
     return expand("{Barcode}_{sample}_{pair}.fastq", sample = samplename, Barcode = barcodes, pair = [1,2])
 
-#Occasionally the paired read might have a barcode for a different file, unpairing the reads -> bbtools re-pair.
-rule repair:
-    input:
-        list = getBarcodedFQ
-    output:
-        "results/1_DemultiplexTrim/repair_{sample}.touch"
-    params:
-        script = srcdir("../bbmap/repair.sh")
-    log:
-        stdout = "logs/1_DemultiplexTrim/{sample}/{sample}_repair.stdout",
-        stderr = "logs/1_DemultiplexTrim/{sample}/{sample}_repair.stderr"
-    shell:
-        """
-        echo "List is"
-        echo {input.list}
-        ../bbmap/repair.sh in={input.list[0]} in2={input.list[1]} out=fixed_{input.list[0]} out2=fixed_{input.list[1]} outs=unpaired_{wildcards.sample}.fastq
-        touch results/1_DemultiplexTrim/repair_{wildcards.sample}.touch
-        """
-
 rule DidDemux:
     input:
         samples = expand("results/1_DemultiplexTrim/demux_{sample}.touch", sample = config.get("samples").keys())
-#        repaired = expand("results/1_DemultiplexTrim/repair_{sample}.touch", sample = config.get("samples").keys())
     output:
         "results/1_DemultiplexTrim/DidDemux.touch"
     shell:

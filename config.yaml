@@ -11,11 +11,16 @@ input_dir:
 #In the case of using barcodes for a multiplex sequencing run, this file contains the barcodes in cutadapt's preffered format: FASTA 
 #>barcodeID
 #seq
-
 demultiplex_barcode_tsv:
   /home/b.brand_cbs-niob.local/Documents/ClockWork/Barcodes.tsv
 
-#Barcodes
+#FASTA format file containing reference sequences
+AmpliconReference:
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/AmpliconReference.fasta
+
+#TSV file in format: FASTA_Reference_Name \t sequence
+GuideSequences:
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/GuideSequence.tsv
 
 
 #START
