@@ -106,6 +106,7 @@ rule convert:
     shell:
         """
         samtools view -b -o {wildcards.bc}_{wildcards.sample}.bam {input.sam}
+        rm {input.sam}
         """
 
 rule sort:
@@ -120,6 +121,7 @@ rule sort:
     shell:
         """
         samtools sort -o sorted_{wildcards.bc}_{wildcards.sample}.bam {input}
+        rm {input}
         """
 
 rule index:
@@ -148,7 +150,5 @@ rule did_crispresso:
     shell:
         """
         CRISPRessoAggregate -p 10 --name "ClockWork" --prefix results/3_crispresso/ --suffix _Paired
-        rm *.sam
-        rm *.bam
         touch results/3_crispresso/finished_crispresso_{wildcards.sample}.touch
         """
