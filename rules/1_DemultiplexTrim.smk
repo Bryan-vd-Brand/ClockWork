@@ -33,25 +33,6 @@ rule demultiplexing_paired:
         touch results/1_DemultiplexTrim/demux_{wildcards.sample}.touch
         """
 
-checkpoint demux:
-    input:
-        did = expand("results/1_DemultiplexTrim/demux_{sample}.touch", sample = config.get("samples").keys())
-    output:
-        passed = "results/1_DemultiplexTrim/passed_demux.touch"
-    shell:
-        """
-        touch results/1_DemultiplexTrim/passed_demux.touch
-        echo "Checkpoint Demux"
-        """
-
-#Checkpoint method, allows for re-evaluation of the DAG after demultiplexing_paired
-def getBarcodedFQ(wildcards):
-    #Forces checkpoint
-    check = checkpoints.demux.get(**wildcards).output[0]
-    samplename = wildcards.sample
-    barcodes = getBarcodes(BARCODES)
-    return expand("{Barcode}_{sample}_{pair}.fastq", sample = samplename, Barcode = barcodes, pair = [1,2])
-
 rule DidDemux:
     input:
         samples = expand("results/1_DemultiplexTrim/demux_{sample}.touch", sample = config.get("samples").keys())

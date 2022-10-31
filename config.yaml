@@ -18,9 +18,13 @@ demultiplex_barcode_tsv:
 AmpliconReference:
   /home/b.brand_cbs-niob.local/Documents/ClockWork/AmpliconReference.fasta
 
-#TSV file in format: FASTA_Reference_Name \t sequence
-GuideSequences:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/GuideSequence.tsv
+#TSV file in CRISPRessoPooled preffered tsv format, see https://github.com/pinellolab/CRISPResso2#crispressopooled
+CRISPRessoPooled:
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/CRISPRessoPooledAmplicons.tsv
+
+#TSV file containing paired ampliconname \t analysis ; HsRev7  Forward ; HsRev7 Paired
+Analysis:
+ /home/b.brand_cbs-niob.local/Documents/ClockWork/Analysis.tsv
 
 
 #START

@@ -2,7 +2,8 @@
 
 BARCODES = config['demultiplex_barcode_tsv']
 AMPLICONREF = config['AmpliconReference']
-GUIDESEQ = config['GuideSequences']
+POOLED = config['CRISPRessoPooled']
+ANALYSIS = config['Analysis']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
 def getBarcodes(barcodeFile):
@@ -15,55 +16,67 @@ def getBarcodes(barcodeFile):
             BarcodeIDs.append(barcodeID)
     return BarcodeIDs
 
-#Opens FASTA format amplicon file, takes sequences/names and returns strings in CRISPResso's preferred format x,y,z.
-def getAmpliconSeqs(fastaFile):
+checkpoint conditional:
+    input:
+        did2 = "results/2_fastqc/multiqc_report.html"
+    output:
+        passed = "results/3_crispresso/passed_conditional.touch"
+    shell:
+        """
+        touch results/3_crispresso/passed_conditional.touch
+        echo "Checkpoint conditional"
+        """
 
-    AmpliconReferenceNames = []
-    AmpliconReferenceSequences = []
-    GuideSequences = []
-
-    lines = [line.strip() for line in open(fastaFile).readlines()]
+#Input function that uses config to use forward, reverse or paired fastq's for CRISPResso
+def conditional_crispresso(wildcards):
+    check = checkpoints.conditional.get(**wildcards).output[0]
+    samplename = wildcards.sample
+    lines = [line.strip() for line in open(ANALYSIS).readlines()]
+    samples = config.get("samples").keys()
+    bcs = getBarcodes(BARCODES)
+    
     for line in lines:
-        if '>' in line:
-            ampliconName = line.replace('>','')
-            AmpliconReferenceNames.append(ampliconName)
-            #Retrieve corresponding guide sequence
-            guides = [l.strip() for l in open(GUIDESEQ).readlines()]
-            for guideLine in guides:
-                if ampliconName in guideLine:
-                    guideSeq = guideLine.split('\t')[1]
-                    GuideSequences.append(guideSeq)
-        if not '>' in line:
-            AmpliconReferenceSequences.append(line)
-    if len(AmpliconReferenceSequences) != len(GuideSequences):
-        print("ERROR: unequal lengths for AmpliconReference and GuideSequences")
+        AmpliconName = line.split("\t")[0]
+        AnalysisType = line.split("\t")[1]
+        if AmpliconName in samplename:
+            if AnalysisType == "Paired":
+                #Use both fq in CRISPResso
+                return expand("results/3_crispresso/crispressoPaired_{bc}_{sample}.touch", sample = samplename, bc = bcs)
+            if AnalysisType == "Forward":
+                #Use only forward fq in CRISPResso
+                return expand("results/3_crispresso/crispressoForward_{bc}_{sample}.touch", sample = samplename, bc = bcs)
 
-    #Compose csv 
-    ARN = ""
-    ARS = ""
-    GS = ""
-    for i in range(0, len(AmpliconReferenceSequences)):
-        ARN = ARN + AmpliconReferenceNames[i] + ","
-        ARS = ARS + AmpliconReferenceSequences[i] + ","
-        GS = GS + GuideSequences[i] + ","
-    return [ARN[0:-1],ARS[0:-1],GS[0:-1]]
 
-rule crispresso:
+rule crispressoForward:
     input:
         r1 = "results/1_DemultiplexTrim/{bc}_{sample}_1.fastq",
         r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
     output:
-        "results/3_crispresso/crispresso_{bc}_{sample}.touch"
+        "results/3_crispresso/crispressoForward_{bc}_{sample}.touch"
     threads: 2
-    params:
-        AR = getAmpliconSeqs(AMPLICONREF)
     log:
         stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stdout",
         stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stderr"
     shell:
         """
-        CRISPResso --expand_allele_plots_by_quantification -r1 {input.r1} -r2 {input.r2} -a {params.AR[1]} -an {params.AR[0]} -g {params.AR[2]} -o results/3_crispresso/
-        touch results/3_crispresso/crispresso_{wildcards.bc}_{wildcards.sample}.touch
+        CRISPRessoPooled -r1 {input.r1} -f {POOLED} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}
+        touch results/3_crispresso/crispressoForward_{wildcards.bc}_{wildcards.sample}.touch
+        """
+
+rule crispressoPaired:
+    input:
+        r1 = "results/1_DemultiplexTrim/{bc}_{sample}_1.fastq",
+        r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
+    output:
+        "results/3_crispresso/crispressoPaired_{bc}_{sample}.touch"
+    threads: 2
+    log:
+        stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stdout",
+        stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stderr"
+    shell:
+        """
+        CRISPRessoPooled -r1 {input.r1} -r2 {input.r2} -f {POOLED} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}_Paired
+        touch results/3_crispresso/crispressoPaired_{wildcards.bc}_{wildcards.sample}.touch
         """
 
 rule align:
@@ -121,21 +134,21 @@ rule index:
     shell:
         """
         samtools index {input.sorted}
+        mv {input.sorted} results/3_crispresso/
+        mv {input.sorted}.bai results/3_crispresso/
         touch results/3_crispresso/align_{wildcards.bc}_{wildcards.sample}.touch
         """
 
 rule did_crispresso:
     input:
-        crp = expand("results/3_crispresso/crispresso_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES)),
-        algn = expand("results/3_crispresso/align_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES))
+        crp = conditional_crispresso,
+        align = expand("results/3_crispresso/align_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES))
     output:
-        "results/3_crispresso/finished_crispresso.touch"
+        "results/3_crispresso/finished_crispresso_{sample}.touch"
     shell:
         """
-        mv sorted_*.bam results/3_crispresso/
-        mv sorted_*.bam.bai results/3_crispresso/
+        CRISPRessoAggregate -p 10 --name "ClockWork" --prefix results/3_crispresso/ --suffix _Paired
         rm *.sam
         rm *.bam
-        CRISPRessoAggregate --name "ClockWork" --prefix results/3_crispresso/ --suffix _2
-        touch results/3_crispresso/finished_crispresso.touch
+        touch results/3_crispresso/finished_crispresso_{wildcards.sample}.touch
         """
