@@ -20,4 +20,5 @@ rule all:
         "results/0_fastqc/multiqc_report.html",
         "results/1_DemultiplexTrim/DidDemux.touch",
         "results/2_fastqc/multiqc_report.html",
-        expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+        expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys()),
+        "results/4_quantifyMutation/finished_quantification.touch"
