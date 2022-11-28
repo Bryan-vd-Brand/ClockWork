@@ -94,7 +94,7 @@ def runCRISPResso():
     if analysisType == "Paired":
         subprocess.run(["CRISPResso","-r1",r1,"-r2",r2,"--amplicon_seq",params[1],"--amplicon_name",params[0],"--guide_seq",params[2],"--coding_seq",params[3],"-o","results/3_crispresso/","-n",reportName])
     elif analysisType == "Forward":
-        subprocess.run(["CRISPResso","-r1",r1,"--amplicon_seq",params[1],"--amplicon_name",params[0],"--guide_seq",params[2],"--coding_seq",params[3],"-o","results/3_crispresso/","-n",reportName,"-w 2","--exclude_bp_from_left","0","--exclude_bp_from_right","0","--plot_window_size","12"])
+        subprocess.run(["CRISPResso","-r1",r1,"--amplicon_seq",params[1],"--amplicon_name",params[0],"--guide_seq",params[2],"--coding_seq",params[3],"-o","results/3_crispresso/","-n",reportName,"-w 5"])
 
 if __name__ == "__main__":
 	runCRISPResso()

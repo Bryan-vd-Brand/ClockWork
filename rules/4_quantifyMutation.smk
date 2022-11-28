@@ -2,7 +2,6 @@
 
 BARCODES = config['demultiplex_barcode_tsv']
 AMPLICONREF = config['AmpliconReference']
-POOLED = config['CRISPRessoPooled']
 ANALYSIS = config['Analysis']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
@@ -19,12 +18,14 @@ def getBarcodes(barcodeFile):
 
 rule finished_quantification:
     input:
-        crp = "results/3_crispresso/finished_crispresso_{sample}.touch"
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
     params:
-        script = srcdir("scripts/quantifyMutations.py)
+        script = srcdir("../scripts/quantifyMutations.py"),
+	    dir = srcdir("../results/3_crispresso/")
     output:
         "results/4_quantifyMutation/finished_quantification.touch"
     shell:
         """
+	    python {params.script} -dir {params.dir}
         touch results/4_quantifyMutation/finished_quantification.touch
         """

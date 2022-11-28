@@ -4,6 +4,7 @@ include: "rules/0_fastqc.smk"
 include: "rules/1_DemultiplexTrim.smk"
 include: "rules/2_fastqc.smk"
 include: "rules/3_crispresso.smk"
+include: "rules/4_quantifyMutation.smk"
 
 print(config.get("samples"))
 

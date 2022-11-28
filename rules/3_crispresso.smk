@@ -2,7 +2,7 @@
 
 BARCODES = config['demultiplex_barcode_tsv']
 AMPLICONREF = config['AmpliconReference']
-POOLED = config['CRISPRessoPooled']
+ALLELES = config['Alleles']
 ANALYSIS = config['Analysis']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
@@ -53,13 +53,15 @@ rule crispressoForward:
         r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
     output:
         "results/3_crispresso/crispressoForward_{bc}_{sample}.touch"
+    params:
+        script = srcdir("../scripts/runCRISPResso.py")
     threads: 2
     log:
         stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stdout",
         stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stderr"
     shell:
         """
-        CRISPRessoPooled -r1 {input.r1} -f {POOLED} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}
+        python {params.script} -a {ALLELES} -r1 {input.r1} -r2 {input.r2} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}_Forward -t Forward
         touch results/3_crispresso/crispressoForward_{wildcards.bc}_{wildcards.sample}.touch
         """
 
@@ -69,13 +71,15 @@ rule crispressoPaired:
         r2 = "results/1_DemultiplexTrim/{bc}_{sample}_2.fastq"
     output:
         "results/3_crispresso/crispressoPaired_{bc}_{sample}.touch"
+    params:
+        script = srcdir("../scripts/runCRISPResso.py")
     threads: 2
     log:
         stdout = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stdout",
         stderr = "logs/3_crispresso/{sample}/{bc}_{sample}_crispresso.stderr"
     shell:
         """
-        CRISPRessoPooled -r1 {input.r1} -r2 {input.r2} -f {POOLED} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}_Paired
+        python {params.script} -a {ALLELES} -r1 {input.r1} -r2 {input.r2} -o results/3_crispresso/ -n {wildcards.bc}_{wildcards.sample}_Paired -t Paired
         touch results/3_crispresso/crispressoPaired_{wildcards.bc}_{wildcards.sample}.touch
         """
 
@@ -149,6 +153,7 @@ rule did_crispresso:
         "results/3_crispresso/finished_crispresso_{sample}.touch"
     shell:
         """
-        CRISPRessoAggregate -p 10 --name "ClockWork" --prefix results/3_crispresso/ --suffix _Paired
+        CRISPRessoAggregate -p 10 --name "ClockWorkPaired" --prefix results/3_crispresso/ --suffix _Paired
+        CRISPRessoAggregate -p 10 --name "ClockWorkForward" --prefix results/3_crispresso/ --suffix _Forward
         touch results/3_crispresso/finished_crispresso_{wildcards.sample}.touch
         """

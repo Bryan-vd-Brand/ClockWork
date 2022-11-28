@@ -1,7 +1,8 @@
 import argparse
 from importlib.util import module_for_loader
 import os
-import glob 
+import glob
+from random import sample 
 import pandas as pd
 
 
@@ -23,73 +24,112 @@ def parse_args():
 
 #Script crawls directory of CRISPRessoPooled results, 
 # retrieves % (un-)modified and #reads from SAMPLES_QUANTIFICATION_SUMMARY.txt -> determines sucess of CRISPR-cas9
-# If sufficient modified reads, crawls directory for CRISPResso_on_xxx directories, retrieves the Quantification_window_modification_count_vectors.txt file (tsv)
+# If sufficient modified reads, crawls directory for CRISPResso_on_xxx directories, retrieves the Frameshift_analysis.txt and Alleles_frequency_table_around_*.txt
 # Uses the table provided to determine the size of indel and call the mutation as a frameshift or not (# of indel bases % 3 != 0)
 def getMutations():
     args = parse_args()
-    pooledDirectory = args.directory[0]
-    print(F"Opening {pooledDirectory} and quantifiying mutation")
+    sourceDir = args.directory[0]
+    print(F"Opening {sourceDir} and quantifiying mutation")
 
-    if not os.path.exists(pooledDirectory):
+    if not os.path.exists(sourceDir):
         print("ERROR: directory supplied for quantification does not exist.")
 
-    ResultDataFrame = pd.DataFrame(columns=["SampleName","Reference","Unmodified","Reads_aligned","Knockout","Insertions","Deletions","Substitutions"])
+    ResultDataFrame = pd.DataFrame(columns=["SampleName","Reference","Unmodified","Reads_aligned","Knockout","Reason","Insertions","Deletions","Substitutions"])
 
     print("glob")
-    for directory in glob.iglob(pooledDirectory + "CRISPRessoPooled_on_*_Paired"):
+    for directory in glob.iglob(sourceDir + "CRISPResso_on_*"):
+
+        #Dirty Hack for bad iglobs
+        if ".html" in directory:
+            continue
+
         lastDir = os.path.basename(os.path.normpath(directory))
         sampleName = lastDir.split('_')[2] + "_" + lastDir.split('_')[3]
-        sampleSummaryFile = os.path.join(directory,"SAMPLES_QUANTIFICATION_SUMMARY.txt")
+        sampleSummaryFile = os.path.join(directory,"CRISPResso_quantification_of_editing_frequency.txt")
         sampleSummary = pd.read_table(sampleSummaryFile, sep='\t',header = 0)
-        amplicons = sampleSummary['Name']
+        amplicons = sampleSummary['Amplicon']
         unmodified = sampleSummary['Unmodified%']
-        readsTotal = sampleSummary['Reads_total']
+        readsAligned = sampleSummary['Reads_aligned']
+
         for i in range(0,len(amplicons)):
-            if unmodified[i] < 5.0 and readsTotal[i] > 1000:
+            if unmodified[i] < 5.0 and readsAligned[i] > 1000:
                 #95% of data is modified reads, and atleast 1K total reads were used
                 #Iterate subfolders and determine indels
-                if not os.path.exists(directory + "/CRISPResso_on_" + amplicons[i]):
-                    print("ERROR: missing expected CRISPResso folder")
-                quantificationFile = directory + "/CRISPResso_on_" + amplicons[i] + "/Quantification_window_modification_count_vectors.txt"
-                if not os.path.exists(quantificationFile):
-                    print(f"ERROR: missing quantification file: {quantificationFile}")
-                #Open up quantification, determine # of indel bases
-                quantificationTable = pd.read_table(quantificationFile, sep='\t', header = 0)
-                #each column is a base around the window, iterate columns. Header = G/T/A/C, 1st row = Insertions, 2rd row = Deletions, 3th row = Substitutions, 4th row = All_modifications, 5th row = Total
-                Insertions = 0
-                Deletions = 0
-                Substitutions = 0
-                for column in quantificationTable.columns[1:]:
-                    values = quantificationTable[column].values
-                    insertionCount = values[0]
-                    deletionCount = values[1]
-                    substitutionCount = values[2]
-                    allModifications = values[3]
-                    totalCount = values[4]
-                    #if less then 1000 modified reads support the indel or sub, skip.
-                    if allModifications < 1000:
-                        continue
-                    #Insertion
-                    if insertionCount > 0.50 * totalCount:
-                        Insertions+=1
-                    #Deletion
-                    if deletionCount > 0.50 * totalCount:
-                        Deletions+=1
-                    #Sub
-                    if substitutionCount > 0.50 * totalCount:
-                        Substitutions+=1
-                #only interested in frameshifts, so %3
-                moduloIndel = (Insertions+Deletions)%3
+                
+                frameshiftFile = directory + f"/{amplicons[i]}.Frameshift_analysis.txt"
+                if not os.path.exists(frameshiftFile):
+                    print(f"ERROR: missing frameshiftFile: {frameshiftFile}")
+                
+                alleleFreqFile = directory + f"/{amplicons[i]}.Alleles_frequency_table_around_*.txt"
+                for aff in glob.iglob(alleleFreqFile):
+                    alleleFreqFile = aff                               
+                if not os.path.exists(alleleFreqFile):
+                    print(f"ERROR: missing alleleFreqFile: {alleleFreqFile}")
+                
+                #Open up allele freq, determine # of indel bases
+                alleleFreqTable = pd.read_table(alleleFreqFile, sep='\t', header = 0)
+                #Header = Aligned_Sequence	Reference_Sequence	Unedited	n_deleted	n_inserted	n_mutated	#Reads	%Reads
+                NoAlleles = 0
+                for x in range(0,len(alleleFreqTable)):
+                    if alleleFreqTable.iloc[x,7] > 5.0:
+                        NoAlleles += 1
+                    else:
+                        break
+                
+                #variables across all alleles
+                totalModifiedReads = 0
+                allEdited = True
+                deleted = ""
+                inserted = ""
+                mutated = ""
 
-                if not moduloIndel == 0:
-                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsTotal[i]],'Knockout':["YES"],'Insertions':[Insertions],'Deletions':[Deletions],'Substitutions':[Substitutions]})
-                    ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
+                for y in range(0,NoAlleles):
+                    Aligned_sequence = alleleFreqTable.iloc[y,0]
+                    Unedited = alleleFreqTable.iloc[y,2]
+                    deleted = deleted + str(alleleFreqTable.iloc[y,3]) + ","
+                    inserted = inserted + str(alleleFreqTable.iloc[y,4]) + ","
+                    mutated = mutated + str(alleleFreqTable.iloc[y,5]) + ","
+                    n_reads = alleleFreqTable.iloc[y,6]
+                    percentage_reads = alleleFreqTable.iloc[y,7]
+
+                    #One of the alleles is functional?
+                    if Unedited == False:
+                        totalModifiedReads += n_reads
+                    else:
+                        allEdited = False
+
+                if allEdited:
+                    #All alleles are modified, check for frameshift or in-frame
+                    file = open(frameshiftFile, 'r')
+                    lines = file.readlines()
+                    noncoding = lines[1].split(':')[1].split(' ')[0]
+                    inFrame = lines[2].split(':')[1].split(' ')[0]
+                    frameshift = lines[3].split(':')[1].split(' ')[0]
+
+                    #Inframe - Frameshift ; if atleast 10% of transcripts for each alelles (sub)-variants are inFrame we assume the phenotype to be fit
+                    if int(inFrame) > int(frameshift) * 0.1:
+                        #report inframe
+                        rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InFrame"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
+                        ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
+                    else:
+                    #report knockout
+                        rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["YES"],'Reason':["Frameshift"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
+                        ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
+
                 else:
-                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsTotal[i]],'Knockout':["NO"],'Insertions':[Insertions],'Deletions':[Deletions],'Substitutions':[Substitutions]})
+
+                    #One of the alleles is unEdited
+                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["FunctionalAllele"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
                     ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
+
             #Failed to pass 1K / 5%
             else:
-                rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsTotal[i]],'Knockout':["NO"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+                if unmodified[i] > 5.0:
+                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["Unmodified"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+                    ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
+                    continue
+                #less then 1K aligned reads
+                rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InsufficientData"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
                 ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                           
         
