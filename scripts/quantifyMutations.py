@@ -65,6 +65,8 @@ def getMutations():
                     alleleFreqFile = aff                               
                 if not os.path.exists(alleleFreqFile):
                     print(f"ERROR: missing alleleFreqFile: {alleleFreqFile}")
+
+                print(F"Processing {alleleFreqFile}")    
                 
                 #Open up allele freq, determine # of indel bases
                 alleleFreqTable = pd.read_table(alleleFreqFile, sep='\t', header = 0)

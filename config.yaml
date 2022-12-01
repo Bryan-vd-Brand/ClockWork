@@ -16,16 +16,16 @@ demultiplex_barcode_tsv:
 
 #FASTA format file containing reference sequences
 AmpliconReference:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/AmpliconReference.fasta
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/OnlyMM.fasta
 
-#TSV file in CRISPRessoPooled preffered tsv format, see https://github.com/pinellolab/CRISPResso2#crispressopooled
-CRISPRessoPooled:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/CRISPRessoPooledAmplicons.tsv
+#TSV file containing Allele specifications in format: Samplename AlleleNames, AlleleSequence, GuideSequence, CodingSequence
+#Seperate by tab, specify multiple alleles by seperating them by comma
+Alleles:
+  /home/b.brand_cbs-niob.local/Documents/ClockWork/Alleles.tsv
 
 #TSV file containing paired ampliconname \t analysis ; HsRev7  Forward ; HsRev7 Paired
 Analysis:
  /home/b.brand_cbs-niob.local/Documents/ClockWork/Analysis.tsv
-
 
 #START
 samples:

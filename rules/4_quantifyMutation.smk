@@ -16,9 +16,24 @@ def getBarcodes(barcodeFile):
     return BarcodeIDs
 
 
-rule finished_quantification:
+rule generateGraphs:
     input:
         crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+    params:
+        script = srcdir("../scripts/generateGraphs.R")
+    output:
+        "results/4_quantifyMutation/finished_Graphs.touch"
+    shell:
+        """
+	    Rscript {params.script}
+        touch results/4_quantifyMutation/finished_Graphs.touch
+        """
+
+
+rule finished_quantification:
+    input:
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys()),
+        graphs = "results/4_quantifyMutation/finished_Graphs.touch"
     params:
         script = srcdir("../scripts/quantifyMutations.py"),
 	    dir = srcdir("../results/3_crispresso/")

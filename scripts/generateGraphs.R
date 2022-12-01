@@ -1,0 +1,122 @@
+#!/usr/bin/env Rscript
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(stringr)
+setwd("~/Documents/ClockWork/")
+
+quantificationEditingFreq <- Sys.glob(file.path("./CRISPRessoAggregate_on_*","CRISPRessoAggregate_quantification_of_editing_frequency.txt"))
+#quantificationEditingFreq is a tsv of with header
+# Name	Unmodified%	Modified%	Reads_total	Reads_aligned	Unmodified	Modified	Discarded	Insertions	Deletions	Substitutions	Only Insertions	Only Deletions	Only Substitutions	Insertions and Deletions	Insertions and Substitutions	Deletions and Substitutions	Insertions Deletions and Substitutions
+
+print(quantificationEditingFreq)
+
+for (tableFile in quantificationEditingFreq){
+
+QEFdf <- read.table(file = tableFile, sep = "\t", header = 1) %>% mutate(Samples = substring(Name, first = 36)) %>% mutate(Samples=factor(Samples,levels=str_sort(Samples, decreasing = TRUE, numeric=TRUE)))
+#long format read-classes
+QEFdf2 <- QEFdf %>% pivot_longer(c("Unmodified","Modified"),names_to="Reads",values_to="Count")
+print(levels(QEFdf2$Samples))
+#plot as stacked barplot
+saveName <- substring(tableFile, first = 26, last = 40) %>% paste("reads") %>% paste(".pdf")
+modifiedBarPlot <- ggplot(QEFdf2, aes(x=Samples, y = Count, fill=Reads)) +
+  geom_bar(position = "stack", stat = "identity", width = 1) +
+  coord_flip() + theme(axis.text=element_text(size=6)) +
+  scale_fill_manual(values = c("orange", "darkgreen"))
+ggsave(modifiedBarPlot, file = saveName)
+
+
+#long format read-classes
+QEFdf3 <- QEFdf %>% pivot_longer(c("Insertions","Deletions","Substitutions"),names_to="Reads",values_to="Count")
+saveName <- substring(tableFile, first = 26, last = 40) %>% paste("variants") %>% paste(".pdf")
+
+#plot as stacked barplot
+variantsPlot <- ggplot(QEFdf3, aes(x=Samples, y = Count, fill=Reads)) +
+  geom_bar(position = "stack", stat = "identity", width = 1) +
+  coord_flip() + theme(axis.text=element_text(size=6)) +
+  scale_fill_manual(values = c("orange", "darkgreen","darkblue"))
+ggsave(variantsPlot, file = saveName)
+
+ #convert to frequency (%), add unmodified (6) and indelsub (9,10,11)
+QEFdf4 <- QEFdf
+
+for (row in 1:nrow(QEFdf)){
+    Reads_total = QEFdf4[row,6] + QEFdf4[row,9] + QEFdf4[row,10] + QEFdf4[row,11]
+    QEFdf4[row,6] = QEFdf4[row,6]/Reads_total
+    QEFdf4[row,9] = QEFdf4[row,9]/Reads_total
+    QEFdf4[row,10] = QEFdf4[row,10]/Reads_total
+    QEFdf4[row,11] = QEFdf4[row,11]/Reads_total
+}
+
+QEFdf4 <- QEFdf4 %>% pivot_longer(c("Insertions","Deletions","Substitutions","Unmodified"),names_to="Reads",values_to="Frequency")
+#plot as stacked barplot
+saveName <- substring(tableFile, first = 26, last = 40) %>% paste("frequency") %>% paste(".pdf")
+frequencyPlot <- ggplot(QEFdf4, aes(x=Samples, y = Frequency, fill=Reads)) +
+  geom_bar(position = "stack", stat = "identity", width = 1) +
+  coord_flip() + theme(axis.text=element_text(size=6)) +
+  scale_fill_manual(values = c("orange", "green3","dodgerblue","black"))
+ggsave(frequencyPlot, file = saveName)
+
+
+}
+
+
+knockoutReport <- Sys.glob(file.path("KnockoutReport.tsv"))
+#tsv with header SampleName	Reference	Unmodified	Reads_aligned	Knockout	Reason	Insertions	Deletions	Substitutions
+koDF = read.table(file = knockoutReport, sep = "\t", header = 1)
+
+#extract csv values (representing alleles) to long format
+decompose <- function(sample,reference,snvtype,indelsub,Reason){
+
+    resultDF <- data.frame(name=character(0),allele = character(0),type=character(0),count=numeric(0),reason=character(0))
+    counts <- as.list(strsplit(indelsub, split = ","))[[1]]
+
+    for (i in counts){
+        if (i == 0) {
+            next
+        }
+        rowDF <- data.frame(name=sample,allele = reference,type=snvtype,count=as.integer(i),reason=Reason)
+        resultDF <- rbind(resultDF, rowDF)
+    }
+
+    return(resultDF)
+}
+
+indelsubDF <- data.frame(name=character(0),allele = character(0),type=character(0),count=numeric(0),reason=character(0))
+#Iterate over koDF and decompose indelsub counts to long format (tsv with csv cell values) # nolint
+
+for (row in 1:nrow(koDF)){
+
+    if( !(is.na(koDF[row, 7]))){
+    ins <- decompose(koDF[row, 1], koDF[row, 2], "Insertions", koDF[row, 7], koDF[row, 6])
+    indelsubDF <- rbind(indelsubDF, ins)
+    }
+
+    if( !(is.na(koDF[row, 7]))){
+    dels <- decompose(koDF[row, 1], koDF[row, 2], "Deletions", koDF[row, 8], koDF[row, 6])
+    indelsubDF <- rbind(indelsubDF, dels)
+    }
+
+    if( !(is.na(koDF[row, 7]))){
+    subs <- decompose(koDF[row, 1], koDF[row, 2], "Substitutions", koDF[row, 9], koDF[row, 6])
+    indelsubDF <- rbind(indelsubDF, subs)
+    }
+}
+#save just incase
+write.csv(indelsubDF,"InDelSub.csv",row.names=FALSE)
+
+#dotplot of indelsubs by allele
+saveName <- paste("indelsub_determination") %>% paste(".pdf")
+indelsub_determination <- ggplot(indelsubDF, aes(x=reason, y = count, color=type)) +
+  geom_jitter() +
+  scale_fill_manual(values = c("orange", "darkgreen","darkblue")) +
+  ylab("Length") + xlab("Determination")
+ggsave(indelsub_determination, file = saveName)
+
+#dotplot of indelsubs by allele
+saveName <- paste("indelsub_allele") %>% paste(".pdf")
+indelsub_allele <- ggplot(indelsubDF, aes(x=name, y = count, color=allele)) +
+  geom_point() +
+  scale_fill_manual(values = c("orange", "darkgreen","darkblue")) +
+  ylab("Length of mutation")
+ggsave(indelsub_allele, file = saveName)
