@@ -3,7 +3,6 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(stringr)
-setwd("~/Documents/ClockWork/")
 
 quantificationEditingFreq <- Sys.glob(file.path("./CRISPRessoAggregate_on_*","CRISPRessoAggregate_quantification_of_editing_frequency.txt"))
 #quantificationEditingFreq is a tsv of with header
@@ -16,7 +15,6 @@ for (tableFile in quantificationEditingFreq){
 QEFdf <- read.table(file = tableFile, sep = "\t", header = 1) %>% mutate(Samples = substring(Name, first = 36)) %>% mutate(Samples=factor(Samples,levels=str_sort(Samples, decreasing = TRUE, numeric=TRUE)))
 #long format read-classes
 QEFdf2 <- QEFdf %>% pivot_longer(c("Unmodified","Modified"),names_to="Reads",values_to="Count")
-print(levels(QEFdf2$Samples))
 #plot as stacked barplot
 saveName <- substring(tableFile, first = 26, last = 40) %>% paste("reads") %>% paste(".pdf")
 modifiedBarPlot <- ggplot(QEFdf2, aes(x=Samples, y = Count, fill=Reads)) +
@@ -56,7 +54,6 @@ frequencyPlot <- ggplot(QEFdf4, aes(x=Samples, y = Frequency, fill=Reads)) +
   coord_flip() + theme(axis.text=element_text(size=6)) +
   scale_fill_manual(values = c("orange", "green3","dodgerblue","black"))
 ggsave(frequencyPlot, file = saveName)
-
 
 }
 

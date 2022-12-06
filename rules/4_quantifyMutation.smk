@@ -15,6 +15,19 @@ def getBarcodes(barcodeFile):
             BarcodeIDs.append(barcodeID)
     return BarcodeIDs
 
+rule generateKnockOutReport:
+    input:
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+    params:
+        script = srcdir("../scripts/quantifyMutations.py"),
+	    dir = srcdir("../results/3_crispresso/")
+    output:
+        "results/4_quantifyMutation/finished_knockout.touch"
+    shell:
+        """
+	    python {params.script} -dir {params.dir}
+        touch results/4_quantifyMutation/finished_knockout.touch
+        """
 
 rule generateGraphs:
     input:
@@ -29,18 +42,28 @@ rule generateGraphs:
         touch results/4_quantifyMutation/finished_Graphs.touch
         """
 
+rule generate96Plate:
+    input:
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+    params:
+        script = srcdir("../scripts/generatePlate.R")
+    output:
+        "results/4_quantifyMutation/finished_Plate.touch"
+    shell:
+        """
+	    Rscript {params.script}
+        touch results/4_quantifyMutation/finished_Plate.touch
+        """
+
 
 rule finished_quantification:
     input:
-        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys()),
-        graphs = "results/4_quantifyMutation/finished_Graphs.touch"
-    params:
-        script = srcdir("../scripts/quantifyMutations.py"),
-	    dir = srcdir("../results/3_crispresso/")
+        ko = "results/4_quantifyMutation/finished_knockout.touch",
+        graphs = "results/4_quantifyMutation/finished_Graphs.touch",
+        plate = "results/4_quantifyMutation/finished_Plate.touch"
     output:
         "results/4_quantifyMutation/finished_quantification.touch"
     shell:
         """
-	    python {params.script} -dir {params.dir}
         touch results/4_quantifyMutation/finished_quantification.touch
         """
