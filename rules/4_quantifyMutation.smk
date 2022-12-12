@@ -3,6 +3,7 @@
 BARCODES = config['demultiplex_barcode_tsv']
 AMPLICONREF = config['AmpliconReference']
 ANALYSIS = config['Analysis']
+ALLELES = config['Alleles']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
 def getBarcodes(barcodeFile):
@@ -55,12 +56,27 @@ rule generate96Plate:
         touch results/4_quantifyMutation/finished_Plate.touch
         """
 
+rule generateIGVscreens:
+    input:
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+    params:
+        script = srcdir("../scripts/generateIGV.py"),
+	    dir = srcdir("../results/3_crispresso/")
+    output:
+        "results/4_quantifyMutation/finished_IGV.touch"
+    shell:
+        """
+	    python {params.script} -dir {params.dir} -a {ALLELES}
+        touch results/4_quantifyMutation/finished_IGV.touch
+        """
+
 
 rule finished_quantification:
     input:
         ko = "results/4_quantifyMutation/finished_knockout.touch",
         graphs = "results/4_quantifyMutation/finished_Graphs.touch",
-        plate = "results/4_quantifyMutation/finished_Plate.touch"
+        plate = "results/4_quantifyMutation/finished_Plate.touch",
+        IGV = "results/4_quantifyMutation/finished_IGV.touch"
     output:
         "results/4_quantifyMutation/finished_quantification.touch"
     shell:

@@ -8,8 +8,6 @@ quantificationEditingFreq <- Sys.glob(file.path("./CRISPRessoAggregate_on_*","CR
 #quantificationEditingFreq is a tsv of with header
 # Name	Unmodified%	Modified%	Reads_total	Reads_aligned	Unmodified	Modified	Discarded	Insertions	Deletions	Substitutions	Only Insertions	Only Deletions	Only Substitutions	Insertions and Deletions	Insertions and Substitutions	Deletions and Substitutions	Insertions Deletions and Substitutions
 
-print(quantificationEditingFreq)
-
 for (tableFile in quantificationEditingFreq){
 
 QEFdf <- read.table(file = tableFile, sep = "\t", header = 1) %>% mutate(Samples = substring(Name, first = 36)) %>% mutate(Samples=factor(Samples,levels=str_sort(Samples, decreasing = TRUE, numeric=TRUE)))
@@ -105,9 +103,9 @@ write.csv(indelsubDF,"InDelSub.csv",row.names=FALSE)
 #dotplot of indelsubs by allele
 saveName <- paste("indelsub_determination") %>% paste(".pdf")
 indelsub_determination <- ggplot(indelsubDF, aes(x=reason, y = count, color=type)) +
-  geom_jitter() +
+  geom_jitter(height = 0) +
   scale_fill_manual(values = c("orange", "darkgreen","darkblue")) +
-  ylab("Length") + xlab("Determination")
+  ylab("Length of mutation") + xlab("Determination")
 ggsave(indelsub_determination, file = saveName)
 
 #dotplot of indelsubs by allele
