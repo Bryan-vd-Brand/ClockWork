@@ -34,7 +34,7 @@ def getMutations():
     if not os.path.exists(sourceDir):
         print("ERROR: directory supplied for quantification does not exist.")
 
-    ResultDataFrame = pd.DataFrame(columns=["SampleName","Reference","Unmodified","Reads_aligned","Knockout","Reason","Insertions","Deletions","Substitutions"])
+    ResultDataFrame = pd.DataFrame(columns=["Sample","SampleName","Reference","Unmodified","Reads_aligned","Knockout","Reason","Insertions","Deletions","Substitutions"])
 
     print("glob")
     for directory in glob.iglob(sourceDir + "CRISPResso_on_*"):
@@ -45,6 +45,7 @@ def getMutations():
 
         lastDir = os.path.basename(os.path.normpath(directory))
         sampleName = lastDir.split('_')[2] + "_" + lastDir.split('_')[3]
+        sample = sampleName.split('_')[1]
         sampleSummaryFile = os.path.join(directory,"CRISPResso_quantification_of_editing_frequency.txt")
         sampleSummary = pd.read_table(sampleSummaryFile, sep='\t',header = 0)
         amplicons = sampleSummary['Amplicon']
@@ -64,9 +65,7 @@ def getMutations():
                 for aff in glob.iglob(alleleFreqFile):
                     alleleFreqFile = aff                               
                 if not os.path.exists(alleleFreqFile):
-                    print(f"ERROR: missing alleleFreqFile: {alleleFreqFile}")
-
-                print(F"Processing {alleleFreqFile}")    
+                    print(f"ERROR: missing alleleFreqFile: {alleleFreqFile}")  
                 
                 #Open up allele freq, determine # of indel bases
                 alleleFreqTable = pd.read_table(alleleFreqFile, sep='\t', header = 0)
@@ -111,32 +110,31 @@ def getMutations():
                     #Inframe - Frameshift ; if atleast 10% of transcripts for each alelles (sub)-variants are inFrame we assume the phenotype to be fit
                     if int(inFrame) > int(frameshift) * 0.1:
                         #report inframe
-                        rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InFrame"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
+                        rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InFrame"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
                         ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                     else:
                     #report knockout
-                        rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["YES"],'Reason':["Frameshift"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
+                        rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["YES"],'Reason':["Frameshift"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
                         ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
 
                 else:
 
                     #One of the alleles is unEdited
-                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["FunctionalAllele"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
+                    rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["FunctionalAllele"],'Insertions':[inserted],'Deletions':[deleted],'Substitutions':[mutated]})
                     ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
 
             #Failed to pass 1K / 5%
             else:
                 if unmodified[i] > 5.0:
-                    rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["Unmodified"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+                    rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["Unmodified"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
                     ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                     continue
                 #less then 1K aligned reads
-                rowDF = pd.DataFrame(data={'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InsufficientData"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+                rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InsufficientData"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
                 ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                           
         
     ResultDataFrame.to_csv("KnockoutReport.tsv",sep='\t', index = False)
-    print(ResultDataFrame)
 
 
 
