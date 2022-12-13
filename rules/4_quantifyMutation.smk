@@ -61,12 +61,13 @@ rule generateIGVscreens:
         crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
     params:
         script = srcdir("../scripts/generateIGV.py"),
-	    dir = srcdir("../results/3_crispresso/")
+	    dir = srcdir("../results/3_crispresso/"),
+        outDir = srcdir("../results/4_quantifyMutation/")
     output:
         "results/4_quantifyMutation/finished_IGV.touch"
     shell:
         """
-	    python {params.script} -dir {params.dir} -a {ALLELES}
+	    python {params.script} -dir {params.dir} -a {ALLELES} -outDir {params.outDir} -ref {AMPLICONREF}
         touch results/4_quantifyMutation/finished_IGV.touch
         """
 

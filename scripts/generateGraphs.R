@@ -57,7 +57,7 @@ ggsave(frequencyPlot, file = saveName)
 
 
 knockoutReport <- Sys.glob(file.path("KnockoutReport.tsv"))
-#tsv with header SampleName	Reference	Unmodified	Reads_aligned	Knockout	Reason	Insertions	Deletions	Substitutions
+#tsv with header Sample SampleName	Reference	Unmodified	Reads_aligned	Knockout	Reason	Insertions	Deletions	Substitutions
 koDF = read.table(file = knockoutReport, sep = "\t", header = 1)
 
 #extract csv values (representing alleles) to long format
@@ -82,18 +82,18 @@ indelsubDF <- data.frame(name=character(0),allele = character(0),type=character(
 
 for (row in 1:nrow(koDF)){
 
-    if( !(is.na(koDF[row, 7]))){
-    ins <- decompose(koDF[row, 1], koDF[row, 2], "Insertions", koDF[row, 7], koDF[row, 6])
+    if( !(is.na(koDF[row, 8]))){
+    ins <- decompose(koDF[row, 2], koDF[row, 3], "Insertions", koDF[row, 8], koDF[row, 7])
     indelsubDF <- rbind(indelsubDF, ins)
     }
 
-    if( !(is.na(koDF[row, 7]))){
-    dels <- decompose(koDF[row, 1], koDF[row, 2], "Deletions", koDF[row, 8], koDF[row, 6])
+    if( !(is.na(koDF[row, 8]))){
+    dels <- decompose(koDF[row, 2], koDF[row, 3], "Deletions", koDF[row, 9], koDF[row, 7])
     indelsubDF <- rbind(indelsubDF, dels)
     }
 
-    if( !(is.na(koDF[row, 7]))){
-    subs <- decompose(koDF[row, 1], koDF[row, 2], "Substitutions", koDF[row, 9], koDF[row, 6])
+    if( !(is.na(koDF[row, 8]))){
+    subs <- decompose(koDF[row, 2], koDF[row, 3], "Substitutions", koDF[row, 10], koDF[row, 7])
     indelsubDF <- rbind(indelsubDF, subs)
     }
 }
