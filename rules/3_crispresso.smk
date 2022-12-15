@@ -4,6 +4,7 @@ BARCODES = config['demultiplex_barcode_tsv']
 AMPLICONREF = config['AmpliconReference']
 ALLELES = config['Alleles']
 ANALYSIS = config['Analysis']
+STRELKA = config['Strelka']
 
 #opens FASTA format barcode file, returns all barcode names for input filename generation
 def getBarcodes(barcodeFile):
@@ -145,10 +146,24 @@ rule index:
         touch results/3_crispresso/align_{wildcards.bc}_{wildcards.sample}.touch
         """
 
+rule strelka:
+    input:
+        aligned = "results/3_crispresso/align_{bc}_{sample}.touch"
+    output:
+        "results/3_crispresso/strelka_{bc}_{sample}.touch"
+    threads: 2
+    shell:
+        """
+        {STRELKA}/bin/configureStrelkaGermlineWorkflow.py --exome --bam "results/3_crispresso/sorted_{wildcards.bc}_{wildcards.sample}.bam" --referenceFasta {AMPLICONREF} --runDir ./results/3_crispresso/Strelka/{wildcards.bc}_{wildcards.sample}/
+        ./results/3_crispresso/Strelka/{wildcards.bc}_{wildcards.sample}/runWorkflow.py -m local -j 2
+        touch results/3_crispresso/strelka_{wildcards.bc}_{wildcards.sample}.touch
+        """
+
 rule did_crispresso:
     input:
         crp = conditional_crispresso,
-        align = expand("results/3_crispresso/align_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES))
+        align = expand("results/3_crispresso/align_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES)),
+        strelka = expand("results/3_crispresso/strelka_{bc}_{sample}.touch", sample = config.get("samples").keys(), bc = getBarcodes(BARCODES)),
     output:
         "results/3_crispresso/finished_crispresso_{sample}.touch"
     shell:

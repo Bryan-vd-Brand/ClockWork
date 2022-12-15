@@ -27,6 +27,10 @@ Alleles:
 Analysis:
  /home/b.brand_cbs-niob.local/Documents/ClockWork/Analysis.tsv
 
+#Directory containing a the strelka variant caller
+Strelka:
+  /home/b.brand_cbs-niob.local/Strelka/strelka-2.9.10.centos6_x86_64/
+
 #START
 samples:
   HsREV7_FKDN220301829-1A_HHFGYDSX3: [/home/b.brand_cbs-niob.local/Documents/ClockWork/data/HsREV7/HsREV7_FKDN220301829-1A_HHFGYDSX3_L4_1.fq.gz,/home/b.brand_cbs-niob.local/Documents/ClockWork/data/HsREV7/HsREV7_FKDN220301829-1A_HHFGYDSX3_L4_2.fq.gz]
