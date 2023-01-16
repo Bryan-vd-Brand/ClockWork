@@ -124,13 +124,13 @@ def getMutations():
                     ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
 
             #Failed to pass 1K / 5%
-            else:
-                if unmodified[i] > 5.0:
-                    rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["Unmodified"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+            else: #less then 1K aligned reads
+                if readsAligned[i] < 1000:
+                    rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InsufficientData"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
                     ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                     continue
-                #less then 1K aligned reads
-                rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["InsufficientData"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
+                               
+                rowDF = pd.DataFrame(data={'Sample':[sample],'SampleName':[sampleName],'Reference':[amplicons[i]],'Unmodified':[unmodified[i]],'Reads_aligned':[readsAligned[i]],'Knockout':["NO"],'Reason':["Unmodified"],'Insertions':["NA"],'Deletions':["NA"],'Substitutions':["NA"]})
                 ResultDataFrame = pd.concat([ResultDataFrame,rowDF],sort=False)
                           
         

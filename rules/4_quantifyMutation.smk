@@ -71,13 +71,28 @@ rule generateIGVscreens:
         touch results/4_quantifyMutation/finished_IGV.touch
         """
 
+rule generatePDFs:
+    input:
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+    params:
+        script = srcdir("../scripts/generatePDF.py"),
+	    dir = srcdir("../results/3_crispresso/"),
+        outDir = srcdir("../results/4_quantifyMutation/")
+    output:
+        "results/4_quantifyMutation/finished_generatePDFs.touch"
+    shell:
+        """
+	    python {params.script} -dir {params.dir} -outDir {params.outDir}
+        touch results/4_quantifyMutation/finished_generatePDFs.touch
+        """
 
 rule finished_quantification:
     input:
         ko = "results/4_quantifyMutation/finished_knockout.touch",
         graphs = "results/4_quantifyMutation/finished_Graphs.touch",
         plate = "results/4_quantifyMutation/finished_Plate.touch",
-        IGV = "results/4_quantifyMutation/finished_IGV.touch"
+        IGV = "results/4_quantifyMutation/finished_IGV.touch",
+        PDF = "results/4_quantifyMutation/finished_generatePDFs.touch"
     output:
         "results/4_quantifyMutation/finished_quantification.touch"
     shell:
