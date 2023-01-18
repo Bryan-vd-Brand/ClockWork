@@ -73,16 +73,19 @@ rule generateIGVscreens:
 
 rule generatePDFs:
     input:
-        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys())
+        crp = expand("results/3_crispresso/finished_crispresso_{sample}.touch", sample = config.get("samples").keys()),
+        wellpdf = "results/4_quantifyMutation/finished_Plate.touch"
     params:
         script = srcdir("../scripts/generatePDF.py"),
 	    dir = srcdir("../results/3_crispresso/"),
-        outDir = srcdir("../results/4_quantifyMutation/")
+        outDir = srcdir("../results/4_quantifyMutation/"),
+        KOReport = srcdir("../KnockoutReport.tsv"),
+        wellPDF = srcdir("../wellPlot.pdf")
     output:
         "results/4_quantifyMutation/finished_generatePDFs.touch"
     shell:
         """
-	    python {params.script} -dir {params.dir} -outDir {params.outDir}
+	    python {params.script} -dir {params.dir} -outDir {params.outDir} -KO {params.KOReport} -PDF {params.wellPDF}
         touch results/4_quantifyMutation/finished_generatePDFs.touch
         """
 
