@@ -108,10 +108,20 @@ indelsub_determination <- ggplot(indelsubDF, aes(x=reason, y = count, color=type
   ylab("Length of mutation") + xlab("Determination")
 ggsave(indelsub_determination, file = saveName)
 
+counter <- 1
+colors <- c("orange", "darkgreen","darkblue")
+for (alleleName in unique(indelsubDF$allele)){
+
+splitDF <- indelsubDF[indelsubDF$allele == alleleName,]
+
 #dotplot of indelsubs by allele
-saveName <- paste("indelsub_allele") %>% paste(".pdf")
-indelsub_allele <- ggplot(indelsubDF, aes(x=name, y = count, color=allele)) +
+saveName <- paste(sprintf("%s_indelsub_allele", alleleName)) %>% paste(".pdf")
+indelsub_allele <- ggplot(splitDF, aes(x=name, y = count, color=allele)) +
   geom_point() +
-  scale_fill_manual(values = c("orange", "darkgreen","darkblue")) +
+  scale_fill_manual(values = colors[counter]) +
+  scale_color_manual(values = colors[counter]) +
   ylab("Length of mutation")
 ggsave(indelsub_allele, file = saveName)
+counter <- counter + 1
+
+}

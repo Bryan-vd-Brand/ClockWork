@@ -85,7 +85,8 @@ rule generatePDFs:
         "results/4_quantifyMutation/finished_generatePDFs.touch"
     shell:
         """
-	    python {params.script} -dir {params.dir} -outDir {params.outDir} -KO {params.KOReport} -PDF {params.wellPDF}
+	    python {params.script} -dir {params.dir} -outDir {params.outDir} -KO {params.KOReport}
+        rm *_name.pdf
         touch results/4_quantifyMutation/finished_generatePDFs.touch
         """
 
