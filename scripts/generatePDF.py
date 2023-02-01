@@ -145,7 +145,7 @@ def generatePDFs():
                 # Create new page and merge it
                 namePDF = fpdf.FPDF(format='letter')
                 namePDF.add_page()
-                namePDF.set_font("Arial", size = 18)
+                namePDF.set_font("Arial", style = 'B', size = 42)
                 namePDF.cell(200, 10, txt = f"{sampleGroup} \n {sampleName}", ln = 1, align="L")
                 namePDF.output(f"{sampleName}_name.pdf")
 

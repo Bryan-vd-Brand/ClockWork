@@ -120,7 +120,8 @@ indelsub_allele <- ggplot(splitDF, aes(x=name, y = count, color=allele)) +
   geom_point() +
   scale_fill_manual(values = colors[counter]) +
   scale_color_manual(values = colors[counter]) +
-  ylab("Length of mutation")
+  ylab("Length of mutation") +
+  scale_y_log10()
 ggsave(indelsub_allele, file = saveName)
 counter <- counter + 1
 
