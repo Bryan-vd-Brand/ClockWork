@@ -24,11 +24,11 @@ wellPlot <- ggplot(splitKOdf, aes(x = X, y = Y, fill = Reason)) +
     geom_dotplot(binaxis = "y",stackdir = "center", dotsize = 2, stackgroups = TRUE) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-    ylab("WellRow") + xlab("WellColumn") +
+    ylab("WellRow") + xlab("WellColumn") + ggtitle(groupname) +
     scale_color_manual(name="", values = c("yellowgreen","darkorange1","maroon","black")) +
     scale_fill_manual(name="", values = c("yellowgreen","darkorange1","maroon","black"))
 
-ggsave(wellPlot, file = sprintf("%s_wellPlot.pdf",groupname), units = "cm", width = 50, height = 10, limitsize = FALSE)
+ggsave(wellPlot, file = sprintf("%s_wellPlot.pdf",groupname), units = "cm", width = 35, height = 10, limitsize = FALSE)
 
 readCountPlot <- ggplot(splitKOdf, aes(x = X, y = Y, color = Reason)) +
     geom_point(size = splitKOdf$sizeScaler) +

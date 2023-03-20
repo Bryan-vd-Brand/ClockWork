@@ -6,26 +6,26 @@
 #  --config input_dir=<INPUT_DIR_PATH> 
 
 input_dir:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/data
+  ../ClockWork/data
 
 #In the case of using barcodes for a multiplex sequencing run, this file contains the barcodes in cutadapt's preffered format: FASTA 
 #>barcodeID
 #seq
 demultiplex_barcode_tsv:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/Barcodes.tsv
+  ../ClockWork/Barcodes.tsv
 
 #FASTA format file containing reference sequences
 AmpliconReference:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/OnlyMM.fasta
+  ../ClockWork/OnlyMM.fasta
 
 #TSV file containing Allele specifications in format: Samplename AlleleNames, AlleleSequence, GuideSequence, CodingSequence
 #Seperate by tab, specify multiple alleles by seperating them by comma
 Alleles:
-  /home/b.brand_cbs-niob.local/Documents/ClockWork/Alleles.tsv
+  ../ClockWork/Alleles.tsv
 
 #TSV file containing paired ampliconname \t analysis ; HsRev7  Forward ; HsRev7 Paired
 Analysis:
- /home/b.brand_cbs-niob.local/Documents/ClockWork/Analysis.tsv
+ ../ClockWork/Analysis.tsv
 
 #Directory containing a the strelka variant caller
 Strelka:

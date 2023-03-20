@@ -116,12 +116,13 @@ splitDF <- indelsubDF[indelsubDF$allele == alleleName,]
 
 #dotplot of indelsubs by allele
 saveName <- paste(sprintf("%s_indelsub_allele", alleleName)) %>% paste(".pdf")
-indelsub_allele <- ggplot(splitDF, aes(x=name, y = count, color=allele)) +
-  geom_point() +
-  scale_fill_manual(values = colors[counter]) +
-  scale_color_manual(values = colors[counter]) +
-  ylab("Length of mutation") +
-  scale_y_log10()
+indelsub_allele <- ggplot(splitDF, aes(x=name, y = count, fill=type)) +
+  geom_dotplot(binaxis = "y",stackdir = "center", dotsize = 0.3, stackgroups = TRUE) +
+  scale_fill_manual(values = colors) +
+  scale_color_manual(values = colors) +
+  ylab("Length of mutation") + ggtitle(alleleName) +
+  scale_y_log10() +
+  theme_bw()
 ggsave(indelsub_allele, file = saveName)
 counter <- counter + 1
 

@@ -46,7 +46,8 @@ def conditional_crispresso(wildcards):
             if AnalysisType == "Forward":
                 #Use only forward fq in CRISPResso
                 return expand("results/3_crispresso/crispressoForward_{bc}_{sample}.touch", sample = samplename, bc = bcs)
-
+                
+ruleorder: convert > sort > index
 
 rule crispressoForward:
     input:
