@@ -13,3 +13,4 @@
 10. Edit Alleles.tsv and describe your "Samplename \t AlleleNames \t AlleleSequence \t GuideSequence \t CodingSequence" ; Seperate by tab, specify multiple alleles by seperating them by comma ; Example for CodingSequence: ATAT,ATGT
 11. Edit Analysis.tsv (NAME \t PAIRED) and describe the usage for each dataset, where the name is a subsequence of the sampleset's name
 12. run the pipeline by snakemake -c{NUM OF CORES} {SNAKEFILE'.}
+13. If you run into issues with wildcard matching (happens if the fq files contain extra _'s) Comment (#) the last 3 lines of rule all and run the pipeline for the first 3 steps, then uncomment and run the last 3 steps
