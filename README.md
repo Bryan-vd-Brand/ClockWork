@@ -2,9 +2,11 @@
 
 1. Clone the git at https://github.com/Bryan-vd-Brand/ClockWork
 2. Open command line in the cloned directory
-2. Create the conda environment with the required libraries ; conda create --name YOURNAME --file ClockWorkEnvSpecFile.txt
+2a. Ensure bioconda is available as a channel for anaconda
+2b. Create the conda environment with the required libraries ; conda create --name YOURNAME --file ClockWorkEnvSpecFile.txt
 3. Load the env; Test for snakemake by running "snakemake -c1" -> expected result is "Building DAG of jobs ..." into WorkflowError:
-4. Add your fastq files to the data directory (Or change the input_dir variable to your data location)
+4a. Add your fastq files to the data directory (Or change the input_dir variable to your data location)
+4b. Ensure your fastq files are placed in a directory with the same name as the sample, a.k.a X/data/SampleName/SampleName.fq
 5. Change the path of STRELKA to your strelka installation
 6. To generate the list of samples in the config file Run: python ./scripts/GenerateConfigFile.py -c config.yaml  
 7. Verify that all paths are correct
