@@ -30,7 +30,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    ConfigFile = args.config_file
+    ConfigFile = args.config_file[0]
     with open(F'{ConfigFile}','rt') as configFile:
         line = configFile.readline()
         while("input_dir:" not in line):
