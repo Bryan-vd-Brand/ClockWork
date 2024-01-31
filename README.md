@@ -1,5 +1,7 @@
 # ClockWork Usage Guide
 
+Please see the PDF paper for more details on the pipeline.
+
 1. Clone the git at https://github.com/Bryan-vd-Brand/ClockWork
 2. Open command line in the cloned directory
 2a. Ensure bioconda is available as a channel for anaconda
